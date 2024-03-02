@@ -15,6 +15,8 @@ ADDR = (SERVER, PORT)
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
 
+print("[CONNECTED] You can type in a message to send to the user, enter 'DISCONNECT' to terminate your connection")
+
 def send(msg):
     message = msg.encode(FORMAT)
     msg_length = len(message)
@@ -23,5 +25,16 @@ def send(msg):
     client.send(send_length)
     client.send(message)
     
-send("Hello World")
+connected = True
+
+while connected:
+    try:
+        text = input()
+        if (text.upper() == "DISCONNECT"):
+            send(DISCONNECT_MSG)
+            exit()
+        send(text)
+    except:
+        send(DISCONNECT_MSG)
+        exit()
     

@@ -26,23 +26,24 @@ def handleClient(conn, addr):
     
     # Flag to control the connection loop
     connected = True
-    while connected:
-        # Receive the message length from the client
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            # Convert message length to integer
-            msg_length = int(msg_length)
-            if (msg_length):
-                # Receive the actual message from the client
-                msg = conn.recv(msg_length).decode(FORMAT)
-                # Check if the client requested disconnection
-                if msg == DISCONNECT_MSG:
-                    connected = False
-                # Print the received message
-                print(f"[{addr}] {msg}")
-        
-    # Close the connection with the client
-    conn.close()
+    try:
+        while connected:
+            # Receive the message length from the client
+            msg_length = conn.recv(HEADER).decode(FORMAT)
+            if msg_length:
+                # Convert message length to integer
+                msg_length = int(msg_length)
+                if (msg_length):
+                    # Receive the actual message from the client
+                    msg = conn.recv(msg_length).decode(FORMAT)
+                    # Check if the client requested disconnection
+                    if msg == DISCONNECT_MSG:
+                        connected = False
+                    # Print the received message
+                    print(f"[{addr}] {msg}")
+    except:
+        # Close the connection with the client
+        conn.close()
 
 # Function to start the server and handle incoming connections
 def start():
