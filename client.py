@@ -2,6 +2,7 @@ import socket
 import pandas as pd
 import os
 import time
+import hashlib  # Import hashlib module for hashing
 
 # Define constants for communication
 HEADER = 64
@@ -14,9 +15,6 @@ ADDR = (socket.gethostbyname(socket.gethostname()), PORT)  # Get IP address dyna
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
 
-print("[CONNECTED] You can type in a message to send to the user, enter 'DISCONNECT' to terminate your connection")
-
-
 # Function to send a message to the server
 def send(msg):
     message = msg.encode(FORMAT)
@@ -25,7 +23,6 @@ def send(msg):
     send_length += b' ' * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
-
 
 # Function to disconnect from the server
 def disconnect():
@@ -36,7 +33,6 @@ def disconnect():
         print("Error while sending disconnect message:", e)
     client.close()
     exit()
-
 
 # Function to register a new user
 def register():
@@ -52,8 +48,11 @@ def register():
 
         password = input('Enter a password : ')
         
+        # Hash the password before storing it
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
         # Create a new DataFrame with the new user data
-        new_user_data = pd.DataFrame({'username': [user], 'password': [password]})
+        new_user_data = pd.DataFrame({'username': [user], 'password': [hashed_password]})
         
         # Concatenate the new DataFrame with the existing user data
         userData = pd.concat([userData, new_user_data], ignore_index=True)
@@ -62,21 +61,18 @@ def register():
         userData.to_csv('db.csv', index=False)
         
         print("Registration successful!")
-        return True
+        return user  # Return the username
     except KeyboardInterrupt:
         disconnect()
     except Exception as e:
         print("An error occurred during registration:", str(e))
         disconnect()
 
-
-
 # Function to login with user authentication
 def login():
     try:
-        userData = pd.read_csv('db.csv', dtype={'password': str})  # Read user data from CSV file
+        userData = pd.read_csv('db.csv')  # Read user data from CSV file
         usernames = userData['username']
-        passwords = userData['password']
 
         user = input('Username : ')
         
@@ -85,17 +81,21 @@ def login():
             print("User does not exist. Please create an account to proceed!")
             return False
 
+        password = input('Password : ')
+        
+        # Hash the entered password
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
         # Get the index of the user in the dataframe
         user_index = usernames[usernames == user].index[0]
 
-        # Retrieve the password corresponding to the entered username
-        actual_password = passwords[user_index]
+        # Retrieve the hashed password corresponding to the entered username
+        actual_hashed_password = userData['password'][user_index]
 
-        # Prompt for password and check if it matches the actual password
-        password = input('Password : ')
-        if password.strip() == str(actual_password).strip():  # Convert actual_password to string
+        # Check if the entered hashed password matches the actual hashed password
+        if hashed_password == actual_hashed_password:
             print('Login successful!')
-            return True
+            return user  # Return the username
         else:
             print('Incorrect password!')
             return False
@@ -105,21 +105,20 @@ def login():
         print("An error occurred during login:", str(e))
         disconnect()
 
-
 # Prompt the user to choose between registering a new user or logging in as an existing user
 while True:
     try:
         option = input("Are you a new user? (yes/no): ").lower()
         if option == "yes":
-            while not register():
-                time.sleep(1)
-                os.system("cls")
-            break
+            user = register()
+            if user:
+                send(user)  # Send the username to the server
+                break
         elif option == "no":
-            while not login():
-                time.sleep(1)
-                os.system("cls")
-            break
+            user = login()
+            if user:
+                send(user)  # Send the username to the server
+                break
         else:
             print("Invalid option. Please enter 'yes' or 'no'.")
     except KeyboardInterrupt:
