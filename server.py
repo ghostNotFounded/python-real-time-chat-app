@@ -41,23 +41,30 @@ def handleClient(conn, addr):
                         connected = False
                     # Print the received message
                     print(f"[{addr}] {msg}")
-    except:
+    except Exception as e:
+        print(f"An error occurred with client {addr}: {e}")
+    finally:
         # Close the connection with the client
         conn.close()
+        print(f"[DISCONNECTED] {addr} disconnected.")
 
 # Function to start the server and handle incoming connections
 def start():
     # Begin listening for incoming connections
     server.listen()
     print(f"[SERVER STARTED] Waiting for connections on {SERVER}")
-    while True:
-        # Accept a new connection
-        conn, addr = server.accept()
-        # Start a new thread to handle the client connection
-        thread = threading.Thread(target=handleClient, args=(conn, addr))
-        thread.start()
-        # Print the number of active connections
-        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+    try:
+        while True:
+            # Accept a new connection
+            conn, addr = server.accept()
+            # Start a new thread to handle the client connection
+            thread = threading.Thread(target=handleClient, args=(conn, addr))
+            thread.start()
+            # Print the number of active connections
+            print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+    except KeyboardInterrupt:
+        print("[INTERRUPTED] Server interrupted. Shutting down...")
+        server.close()
 
 # Main entry point of the program
 if __name__ == "__main__":
