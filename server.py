@@ -1,6 +1,8 @@
 import socket
 import threading
 
+import hashlib  # Import hashlib module for hashing
+
 # Define the fixed header size for messages
 HEADER = 64
 # Define the port number for communication
@@ -20,6 +22,13 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Bind the server socket to the specified address and port
 server.bind(ADDR)
 
+# For recieving user name
+codeplain = "user"
+code = hashlib.sha256(codeplain.encode()).hexdigest()
+
+# Keep a list of all active users
+users = {}
+
 # Function to handle each client connection
 def handleClient(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
@@ -36,17 +45,45 @@ def handleClient(conn, addr):
                 if (msg_length):
                     # Receive the actual message from the client
                     msg = conn.recv(msg_length).decode(FORMAT)
-                    # Check if the client requested disconnection
+                    # Check if the client requested disconnection                    
                     if msg == DISCONNECT_MSG:
                         connected = False
-                    # Print the received message
-                    print(f"[{addr}] {msg}")
+                        
+                    if msg.startswith(code):
+                        users[addr] = msg[64:].strip('\n')  # Add username to dictionary corresponding to addr
+                    elif msg.lower() == "listusers":
+                        print(users)
+                    elif msg.lower() == "stealcow":
+                        print("""
+          ⡠⠤⠐⠒⠂⠤⢄⡀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⡠⠖⠁⠀⠀⠀⠀⠀⠁⠢⡈⠲⣄⠀⠀
+⠀⠀⠀⠀⠀⡜⠁⠀⢀⠁⠀⠀⠈⢁⠀⠔⠀⠄⠈⢦⠀
+⠀⠀⠀⠀⠀⠁⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠈⡄
+⠀⠀⠀⠀⠀⣦⡇⠀⠀⠀⠀⡀⡀⠀⠀⠀⠀⠀⢸⣴⠁
+⠀⠀⠀⠀⠀⢹⡧⠄⠀⠀⢉⠐⠒⠀⡉⠁⠀⠢⢼⡇⠀
+⠀⠀⠀⠀⠀⢸⢸⣟⠛⣿⣦⠑⠀⠊⣴⠿⣿⣿⡏⡇⠀
+⠀⠀⠀⠀⠀⠘⢮⢻⣿⣿⣿⡇⠀⢸⣿⣾⣿⣟⡴⠁⠀
+⡤⠄⠀⡖⢢⠀⠈⢳⡈⠙⠛⢁⠀⡈⠛⠋⣁⡞⠁⠀⠀
+⠱⡸⡀⡕⡎⠀⠀⠀⠳⣄⠀⠉⠀⠉⠀⣠⠟⠀⠀⠀⠀
+⠀⢣⢣⡇⡇⠀⠀⠀⠀⠈⢧⡀⠒⢈⡼⠁⠀⠀⠀⠀⠀
+⢴⢺⣃⡒⠣⡀⠀⠀⠀⠀⠸⣿⠲⣿⠇⠀⠀⠀⠀⠀⠀
+⠈⠣⡹⠉⢀⠃⠀⢀⣀⡠⠜⡙⣀⢛⠣⢄⣀⡀⠀⠀⠀
+⠀⠀⠑⡏⣹⠀⢸⠇⢀⠀⠉⠀⣀⠀⠁⠀⡄⠸⡆⠀⠀
+⠀⠀⠀⢁⠀⢇⡸⢀⣨⡀⠀⠀⢀⠀⠀⢀⣅⠀⡇⠀⠀
+⠀⠀⠀⠸⡀⠈⠇⣸⠏⣇⠀⠀⠤⠀⠀⣸⡇⠀⠀⠀⠀
+⠀⠀⠀⠀⣿⡀⢨⡟⠀⡗⠀⠀⢀⠀⠀⢺⡇⠀⠇⠀⠀
+⠀⠀⠀⠀⠈⠺⡽⠁⠀⠧⠬⠤⠤⠄⠄⠸⢇⣄⠇⠀⠀
+                              """)
+                    else:
+                        print(f"[{users.get(addr)}] {msg}")
+                    
     except Exception as e:
         print(f"An error occurred with client {addr}: {e}")
     finally:
         # Close the connection with the client
         conn.close()
-        print(f"[DISCONNECTED] {addr} disconnected.")
+        print(f"[DISCONNECTED] {users.get(addr)} disconnected.")
+        users.pop(addr)
 
 # Function to start the server and handle incoming connections
 def start():
